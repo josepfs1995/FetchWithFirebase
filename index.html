@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feth Prueba</title>
+</head>
+<body>
+    <input type="text" id="txtNombre" placeholder="Nombre"/><br/>
+    <input type="text" id="txtApellido" placeholder="Apellido"/><br/>
+    <button type="button" id="btnGuardar">Guardar</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody id="bodyPersonas">
+
+        </tbody>
+    </table>
+    <script>
+        var fetchPrueba = async function (){
+            document.getElementById("btnGuardar").addEventListener("click", async function(){
+                var button = this;
+                var id = button.getAttribute("data-id");
+                var esEditar = id != null;
+                var model = {
+                    Nombre: document.getElementById("txtNombre").value,
+                    Apellido: document.getElementById("txtApellido").value
+                };
+                var url = esEditar ? `https://pruebafetch-6073c.firebaseio.com/Persona/${id}.json` :
+                                    "https://pruebafetch-6073c.firebaseio.com/Persona.json";
+                await  fetch(url, {
+                    method: esEditar ? "PUT" : "POST",
+                    body: JSON.stringify(model)
+                    //body: model
+                })
+                .then(response=> Promise.all([response.json(), response.ok]))
+                .then(async([data, success])=> {
+                    if(success){
+                        if(esEditar) alert(`Se modifico el Id: ${id}`);
+                        else alert(`Se genero el Id: ${data.name}`);
+                        await obtenerPersonas();
+                        limpiar();
+                    }
+                    else alert(`No se pudo guardar`);
+                    
+                });
+            });
+            var obtenerPersonas = async function(){
+                await fetch("https://pruebafetch-6073c.firebaseio.com/Persona.json")
+                .then(response => response.json())
+                .then(json => {
+                    var bodyPersonas = document.getElementById("bodyPersonas");
+                    bodyPersonas.innerHTML = "";
+                    Object.keys(json).forEach(key=>{
+                        var element = json[key];
+                        var tr = document.createElement("tr");
+                        var tdNombre = document.createElement("td");
+                        tdNombre.innerHTML = element.Nombre;
+
+                        var tdApellido = document.createElement("td");
+                        tdApellido.innerHTML = element.Apellido;
+
+                        var tdAccion = document.createElement("td");
+                        var buttonEditar = document.createElement("button");
+                        buttonEditar.innerHTML = "Editar";
+                        buttonEditar.onclick = () => obtenerPersona(key);
+                        var buttonEliminar = document.createElement("button");
+                        buttonEliminar.innerHTML = "Eliminar";
+                        buttonEliminar.onclick = () => eliminarPersona(key);
+                        tdAccion.append(buttonEditar);
+                        tdAccion.append(buttonEliminar);
+
+                        tr.appendChild(tdNombre);
+                        tr.appendChild(tdApellido);
+                        tr.appendChild(tdAccion);
+                        bodyPersonas.appendChild(tr);
+                    });
+                });
+            }
+            var obtenerPersona = async function(id){
+                await fetch(`https://pruebafetch-6073c.firebaseio.com/Persona/${id}.json`)
+                .then(response => Promise.all([response.json(), response.ok]))
+                .then(([data, success]) => {
+                   if(success){
+                       document.getElementById("txtNombre").value = data.Nombre;
+                       document.getElementById("txtApellido").value = data.Apellido;
+                       document.getElementById("btnGuardar").setAttribute("data-id", id);
+                   } 
+                });
+            }
+            var eliminarPersona = async function(id){
+                await fetch(`https://pruebafetch-6073c.firebaseio.com/Persona/${id}.json`, {
+                    method:"DELETE"
+                })
+                .then(response=> Promise.all([response.json(), response.ok]))
+                .then(([data,success])=>{
+                    if(success){ 
+                        alert(`Se elimino correctamente el id ${id}`);
+                        obtenerPersonas();
+                    }
+                    else alert(`No se pudo eliminar`);
+                })
+            }
+            var limpiar = function(){
+                document.getElementById("txtNombre").value = "";
+                document.getElementById("txtApellido").value = "";
+                document.getElementById("btnGuardar").removeAttribute("data-id");
+            }
+            await obtenerPersonas();
+            console.log("Esperando...");
+        }();
+
+
+    </script>
+</body>
+</html>
